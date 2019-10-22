@@ -522,15 +522,28 @@ class RoomMemberHandler(object):
         if not predecessor:
             return
         old_room_id = predecessor["room_id"]
+
+        old_room = yield self.store.get_room(old_room_id)
+        if not old_room:
+            return
+
         logger.debug("Found predecessor for %s: %s", room_id, old_room_id)
+
+        # Depublish the old room from the room directory if it was published
+        if old_room["is_public"]:
+            yield self.store.set_room_is_public(old_room_id, False)
 
         # Copy over user state if this is a join on an remote upgraded room
         yield self.copy_user_state_on_room_upgrade(old_room_id, room_id, user_id)
 
-        # Depublish the old room from the room directory if it was published
-        room = yield self.store.get_room(old_room_id)
-        if room and room["is_public"]:
-            yield self.store.set_room_is_public(old_room_id, False)
+        # Check if any groups we own contain the predecessor room
+        local_group_ids = yield self.store.get_local_groups_for_room(old_room_id)
+        for group_id in local_group_ids:
+            # Add new the new room to those groups
+            yield self.store.add_room_to_group(group_id, room_id, old_room["is_public"])
+
+            # Remove the old room from those groups
+            yield self.store.remove_room_from_group(group_id, old_room_id)
 
     @defer.inlineCallbacks
     def copy_user_state_on_room_upgrade(self, old_room_id, new_room_id, user_id):

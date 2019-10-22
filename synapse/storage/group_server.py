@@ -554,6 +554,32 @@ class GroupServerStore(SQLBaseStore):
             desc="remove_user_from_summary",
         )
 
+    def get_local_groups_for_room(self, room_id):
+        """Get all of the local group that contain a given room
+
+        Args:
+            room_id (str): The ID of a room
+
+        Returns:
+            Deferred[list[str]]: A twisted.Deferred containing a list of group ids
+                containing this room
+        """
+
+        def _get_local_groups_for_room_txn(txn):
+            sql = """
+                SELECT group_id
+                FROM group_rooms
+                WHERE room_id = ?
+            """
+
+            txn.execute(sql, (room_id,))
+            group_ids = [r[0] for r in txn]
+            return group_ids
+
+        return self.runInteraction(
+            "get_local_groups_for_room", _get_local_groups_for_room_txn
+        )
+
     def get_users_for_summary_by_role(self, group_id, include_private=False):
         """Get the users and roles that should be included in a summary request
 
