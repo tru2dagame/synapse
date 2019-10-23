@@ -583,9 +583,7 @@ class StateGroupWorkerStore(
             room_id (str)
 
         Returns:
-            Deferred[dict[str, str]|None]: A dictionary containing the following keys:
-                * room_id (str): The room ID of the predecessor room
-                * event_id (str): The ID of the tombstone event in the predecessor room
+            Deferred[unicode|None]: predecessor room id
 
         Raises:
             NotFoundError if the room is unknown
