@@ -564,20 +564,11 @@ class GroupServerStore(SQLBaseStore):
             Deferred[list[str]]: A twisted.Deferred containing a list of group ids
                 containing this room
         """
-
-        def _get_local_groups_for_room_txn(txn):
-            sql = """
-                SELECT group_id
-                FROM group_rooms
-                WHERE room_id = ?
-            """
-
-            txn.execute(sql, (room_id,))
-            group_ids = [r[0] for r in txn]
-            return group_ids
-
-        return self.runInteraction(
-            "get_local_groups_for_room", _get_local_groups_for_room_txn
+        return self._simple_select_onecol(
+            table="group_rooms",
+            keyvalues={"room_id": room_id},
+            retcol="group_id",
+            desc="get_local_groups_for_room",
         )
 
     def get_users_for_summary_by_role(self, group_id, include_private=False):
